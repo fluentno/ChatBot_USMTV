@@ -1,0 +1,7 @@
+streamlit
+pandas
+requests
+google-generativeai
+scikit-learn
+Sastrawi
+Pillow
