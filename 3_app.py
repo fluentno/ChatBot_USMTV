@@ -68,7 +68,7 @@ ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 # --- 3. FUNGSI UPDATE DATA ---
 def update_database_otomatis():
     # 👇 UBAH JADI 30 BERITA BIAR INGATAN USI LEBIH BANYAK 👇
-    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=30&_fields=title,link,content,date"
+    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=100&_fields=title,link,content,date"
     
     headers_browser = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -247,4 +247,5 @@ if prompt := st.chat_input("Tanya berita..."):
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
+
 
