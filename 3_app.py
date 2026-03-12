@@ -206,7 +206,7 @@ def get_image_base64(image_path):
         return None
 
 file_logo_email = "logo_email.png" 
-file_logo_wa = "logo_wa.png"       
+file_logo_wa = "logo_wa.jpg"       
 
 img_email = get_image_base64(file_logo_email)
 img_wa = get_image_base64(file_logo_wa)
@@ -247,3 +247,4 @@ if prompt := st.chat_input("Tanya berita..."):
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
+
