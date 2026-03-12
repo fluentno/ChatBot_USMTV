@@ -40,8 +40,6 @@ st.markdown("""
             display: block !important;
             color: #d32f2f;
         }
-        
-        /* CSS Khusus untuk Logo di dalam teks */
         .inline-logo {
             vertical-align: middle;
             margin: 0 4px;
@@ -49,10 +47,8 @@ st.markdown("""
             border-radius: 4px;
         }
         .inline-logo:hover {
-            transform: scale(1.15); /* Membesar saat disentuh mouse */
+            transform: scale(1.15); 
         }
-        
-        /* CSS Kotak Info Biru */
         .custom-info-box {
             background-color: #eef4ff;
             padding: 12px 16px;
@@ -71,9 +67,15 @@ ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 
 # --- 3. FUNGSI UPDATE DATA ---
 def update_database_otomatis():
-    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=15&_fields=title,link,content,date"
+    # 👇 UBAH JADI 30 BERITA BIAR INGATAN USI LEBIH BANYAK 👇
+    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=30&_fields=title,link,content,date"
+    
+    headers_browser = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, headers=headers_browser, timeout=15)
         if response.status_code != 200: return False
         data_mentah = response.json()
     except Exception:
@@ -100,7 +102,6 @@ def update_database_otomatis():
     pd.DataFrame(data_bersih).to_csv('dataset_bersih.csv', index=False)
     return True
 
-# Cek & Auto-Update setiap 6 Jam
 def cek_kesehatan_data():
     file_path = 'dataset_bersih.csv'
     perlu_update = False
@@ -154,14 +155,18 @@ def tanya_usi(pertanyaan_user):
         isi = df.iloc[idx]['isi_html']
         konteks_berita += f"JUDUL: {judul}\nISI: {isi}\nLINK SUMBER: {link}\n\n"
 
+    # 👇 PROMPT BARU: LEBIH TEGAS & ANTI NGARANG 👇
     prompt = f"""
     Kamu adalah USI, asisten USMTV.
-    Jawab SINGKAT, PADAT, dan JELAS berdasarkan KONTEKS BERITA:
+    
+    KONTEKS BERITA SAAT INI:
     {konteks_berita}
     
     ATURAN MUTLAK:
-    Di akhir setiap jawaban, KAMU WAJIB menyertakan link sumber beritanya dengan format:
-    "Sumber: [Link Berita]"
+    1. Jawab pertanyaan HANYA berdasarkan KONTEKS BERITA di atas.
+    2. JIKA konteks berita TIDAK NYAMBUNG atau TIDAK ADA kaitannya dengan pertanyaan, KAMU WAJIB MENJAWAB DENGAN RAMAH: "Maaf, dari data berita terbaru USMTV saat ini, saya belum menemukan berita terkait topik tersebut."
+    3. JANGAN mengarang jawaban atau memaksakan berita yang tidak relevan.
+    4. Di akhir jawaban yang berhasil dan nyambung, WAJIB sertakan: "Sumber: [Link Berita]".
     
     Pertanyaan: {pertanyaan_user}
     """
@@ -177,22 +182,22 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True) 
     
-    st.write("**Pengaturan**")
+    st.write("⚙️ **Pengaturan**")
     
-    if st.button("Update Berita"):
-        with st.spinner("Updating..."):
+    if st.button("🔄 Update Berita"):
+        with st.spinner("Updating (menarik 30 berita)..."):
             if update_database_otomatis():
                 st.success("Updated!")
                 st.cache_resource.clear() 
+                st.rerun()
 
-    if st.button("Hapus Chat"):
+    if st.button("🗑️ Hapus Chat"):
         st.session_state.messages = []
         st.rerun()
 
 # --- 7. TAMPILAN CHAT UTAMA & LOGO INLINE ---
 st.title("USI Si Asisten!")
 
-# Blok Info & Logo Kontributor (SEKARANG AKAN SELALU MUNCUL)
 def get_image_base64(image_path):
     try:
         with open(image_path, "rb") as img_file:
@@ -201,7 +206,7 @@ def get_image_base64(image_path):
         return None
 
 file_logo_email = "logo_email.png" 
-file_logo_wa = "logo_wa.jpg"       
+file_logo_wa = "logo_wa.png"       
 
 img_email = get_image_base64(file_logo_email)
 img_wa = get_image_base64(file_logo_wa)
@@ -209,15 +214,15 @@ img_wa = get_image_base64(file_logo_wa)
 if img_email and img_wa:
     info_html = f"""
     <div class="custom-info-box">
-        Ingin mengunggah berita anda sendiri? Hubungi (
+        Ingin mengunggah berita anda sendiri? Hubungi 
         <a href="mailto:dyahretnosupriyani@gmail.com" target="_blank" title="Kirim Email">
             <img src="data:image/png;base64,{img_email}" height="22" class="inline-logo">
         </a> 
-        ) atau WhatsApp (
+        atau WhatsApp 
         <a href="https://wa.me/62895411855225" target="_blank" title="Chat WhatsApp">
             <img src="data:image/png;base64,{img_wa}" height="22" class="inline-logo">
         </a> 
-        ) kami.
+        kami.
     </div>
     """
     st.markdown(info_html, unsafe_allow_html=True)
@@ -241,5 +246,4 @@ if prompt := st.chat_input("Tanya berita..."):
         jawaban_usi = tanya_usi(prompt)
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
-
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
