@@ -12,7 +12,7 @@ from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from PIL import Image
 
 # --- 1. KONFIGURASI API KEY ---
-API_KEY = "AIzaSyB5vKHle3HXD9EnZS_RCIQJki9jrzaHxyk"
+API_KEY = st.secrets["GEMINI_API_KEY"] 
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
 
@@ -241,4 +241,5 @@ if prompt := st.chat_input("Tanya berita..."):
         jawaban_usi = tanya_usi(prompt)
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
+
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
