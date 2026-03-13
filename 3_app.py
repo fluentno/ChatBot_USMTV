@@ -183,7 +183,7 @@ with st.sidebar:
     st.write("⚙️ **Pengaturan**")
     
     if st.button("🔄 Update Berita"):
-        with st.spinner("Updating (menarik 30 berita)..."):
+        with st.spinner("Updating..."):
             if update_database_otomatis():
                 st.success("Updated!")
                 st.cache_resource.clear() 
