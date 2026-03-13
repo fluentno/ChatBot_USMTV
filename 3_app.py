@@ -11,12 +11,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from PIL import Image
 
-# --- 1. KONFIGURASI API KEY ---
 API_KEY = st.secrets["GEMINI_API_KEY"] 
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
 
-# --- 2. SETUP HALAMAN & LOGO ---
 try:
     logo_icon = Image.open("usi 2.png") 
 except FileNotFoundError:
@@ -29,7 +27,6 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-# --- CSS FIX ---
 st.markdown("""
     <style>
         .reportview-container { margin-top: -2em; }
@@ -65,9 +62,7 @@ st.markdown("""
 ICON_USI = "usi 2.png" 
 ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 
-# --- 3. FUNGSI UPDATE DATA ---
 def update_database_otomatis():
-    # 👇 UBAH JADI 30 BERITA BIAR INGATAN USI LEBIH BANYAK 👇
     url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=100&_fields=title,link,content,date"
     
     headers_browser = {
@@ -122,7 +117,6 @@ def cek_kesehatan_data():
 
 cek_kesehatan_data()
 
-# --- 4. LOAD DATA ---
 @st.cache_resource
 def load_data():
     try:
@@ -139,9 +133,8 @@ def load_data():
 
 df, vectorizer, tfidf_matrix, stemmer = load_data()
 
-# --- 5. LOGIKA USI ---
 def tanya_usi(pertanyaan_user):
-    import random # Memanggil fitur acak bawaan Python
+    import random 
 
     if df is None: return "Database bermasalah."
 
@@ -149,15 +142,10 @@ def tanya_usi(pertanyaan_user):
     query_vec = vectorizer.transform([clean_query])
     similarity_scores = cosine_similarity(query_vec, tfidf_matrix)
 
-    # 👇 FITUR ANTI-BOSEN (RANDOMIZER) 👇
-    # Jika skor kemiripan sangat rendah (berarti pertanyaan umum/tidak spesifik)
     if similarity_scores.max() < 0.05:
-        # Cegah error jika isi database ternyata kurang dari 3
         jumlah_berita = min(3, len(df))
-        # Ambil artikel secara acak dari database
         top_indices = random.sample(range(len(df)), jumlah_berita)
     else:
-        # Jika ada topik spesifik, ambil 3 yang paling akurat
         top_indices = similarity_scores.argsort()[0][-3:][::-1]
 
     konteks_berita = ""
@@ -187,7 +175,6 @@ def tanya_usi(pertanyaan_user):
     except:
         return "Maaf, koneksi gangguan."
 
-# --- 6. SIDEBAR (HANYA PENGATURAN) ---
 with st.sidebar:
     st.image(ICON_USI, width=80)
     
@@ -206,7 +193,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# --- 7. TAMPILAN CHAT UTAMA & LOGO INLINE ---
 st.title("USI Si Asisten!")
 
 def get_image_base64(image_path):
@@ -225,11 +211,11 @@ img_wa = get_image_base64(file_logo_wa)
 if img_email and img_wa:
     info_html = f"""
     <div class="custom-info-box">
-        Ingin mengunggah berita anda sendiri? Hubungi 
+        Ingin mengunggah berita anda sendiri? Hubungi Email
         <a href="mailto:dyahretnosupriyani@gmail.com" target="_blank" title="Kirim Email">
             <img src="data:image/png;base64,{img_email}" height="22" class="inline-logo">
         </a> 
-        atau WhatsApp 
+        atau WhatsApp
         <a href="https://wa.me/62895411855225" target="_blank" title="Chat WhatsApp">
             <img src="data:image/png;base64,{img_wa}" height="22" class="inline-logo">
         </a> 
@@ -240,7 +226,6 @@ if img_email and img_wa:
 else:
     st.info("Ingin mengunggah berita anda sendiri? Hubungi Email (dyahretnosupriyani@gmail.com) atau WhatsApp (0895411855225) kami.")
 
-# --- 8. AREA CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Halo! Saya USI. Ada berita yang dicari?"}]
 
