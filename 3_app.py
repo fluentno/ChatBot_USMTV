@@ -141,12 +141,24 @@ df, vectorizer, tfidf_matrix, stemmer = load_data()
 
 # --- 5. LOGIKA USI ---
 def tanya_usi(pertanyaan_user):
+    import random # Memanggil fitur acak bawaan Python
+
     if df is None: return "Database bermasalah."
 
     clean_query = stemmer.stem(pertanyaan_user.lower())
     query_vec = vectorizer.transform([clean_query])
     similarity_scores = cosine_similarity(query_vec, tfidf_matrix)
-    top_indices = similarity_scores.argsort()[0][-3:][::-1]
+
+    # 👇 FITUR ANTI-BOSEN (RANDOMIZER) 👇
+    # Jika skor kemiripan sangat rendah (berarti pertanyaan umum/tidak spesifik)
+    if similarity_scores.max() < 0.05:
+        # Cegah error jika isi database ternyata kurang dari 3
+        jumlah_berita = min(3, len(df))
+        # Ambil artikel secara acak dari database
+        top_indices = random.sample(range(len(df)), jumlah_berita)
+    else:
+        # Jika ada topik spesifik, ambil 3 yang paling akurat
+        top_indices = similarity_scores.argsort()[0][-3:][::-1]
 
     konteks_berita = ""
     for idx in top_indices:
@@ -155,7 +167,6 @@ def tanya_usi(pertanyaan_user):
         isi = df.iloc[idx]['isi_html']
         konteks_berita += f"JUDUL: {judul}\nISI: {isi}\nLINK SUMBER: {link}\n\n"
 
-    # 👇 PROMPT BARU: LEBIH TEGAS & ANTI NGARANG 👇
     prompt = f"""
     Kamu adalah USI, asisten USMTV.
     
@@ -247,5 +258,6 @@ if prompt := st.chat_input("Tanya berita..."):
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
+
 
 
