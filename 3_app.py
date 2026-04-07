@@ -237,7 +237,7 @@ if img_email and img_wa:
     info_html = f"""
     <div class="custom-info-box">
         Ingin mengunggah berita anda sendiri? Hubungi Email
-        <a href="mailto:dyahretnosupriyani@gmail.com" title="Kirim Email">
+        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=dyahretnosupriyani@gmail.com" target="_blank" title="Kirim Email via Gmail">
             <img src="data:image/png;base64,{img_email}" height="22" class="inline-logo">
         </a> 
         atau WhatsApp
