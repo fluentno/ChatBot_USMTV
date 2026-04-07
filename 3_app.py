@@ -204,20 +204,19 @@ with st.sidebar:
     
     st.markdown("<br>", unsafe_allow_html=True) 
     
-    st.write("⚙️ **Pengaturan**")
+    st.write("**USI menu options!**")
     
-    if st.button("🔄 Update Berita"):
+    if st.button("Mau Update Berita"):
         with st.spinner("Updating..."):
             if update_database_otomatis():
                 st.success("Updated!")
                 st.cache_resource.clear() 
                 st.rerun()
 
-    if st.button("🗑️ Hapus Chat"):
+    if st.button("Mau Hapus Chat Aja"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 7. TAMPILAN UTAMA ---
 st.title("USI Si Asisten!")
 
 def get_image_base64(image_path):
