@@ -235,7 +235,7 @@ img_wa = get_image_base64(file_logo_wa)
 if img_email and img_wa:
     info_html = f"""
     <div class="custom-info-box">
-        Ingin mengunggah berita anda sendiri? Hubungi Email
+        Ingin mengunggah berita anda sendiri? Ayo hubungi Email
         <a href="https://mail.google.com/mail/?view=cm&fs=1&to=dyahretnosupriyani@gmail.com" target="_blank" title="Kirim Email via Gmail">
             <img src="data:image/png;base64,{img_email}" height="22" class="inline-logo">
         </a> 
@@ -243,12 +243,12 @@ if img_email and img_wa:
         <a href="https://wa.me/62895411855225" target="_blank" title="Chat WhatsApp">
             <img src="data:image/png;base64,{img_wa}" height="22" class="inline-logo">
         </a> 
-        kami.
+        kami!
     </div>
     """
     st.markdown(info_html, unsafe_allow_html=True)
 else:
-    st.info("Ingin mengunggah berita anda sendiri? Hubungi Email (dyahretnosupriyani@gmail.com) atau WhatsApp (0895411855225) kami.")
+    st.info("Ingin mengunggah berita anda sendiri? Ayo hubungi Email (dyahretnosupriyani@gmail.com) atau WhatsApp (0895411855225) kami!")
 
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Halo! Saya USI. Ada berita yang dicari?"}]
