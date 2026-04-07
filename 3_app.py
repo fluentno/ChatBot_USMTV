@@ -75,7 +75,23 @@ def update_database_otomatis():
         data_mentah = response.json()
     except Exception:
         return False
+        
+    file_path = 'dataset_bersih.csv'
+    link_sudah_ada = []
+    df_lama = pd.DataFrame()
     
+    if os.path.exists(file_path):
+        try:
+            df_lama = pd.read_csv(file_path)
+            link_sudah_ada = df_lama['link'].tolist()
+        except:
+            pass
+
+    data_baru = [item for item in data_mentah if item['link'] not in link_sudah_ada]
+
+    if not data_baru:
+        return True 
+   
     factory = StemmerFactory()
     stemmer = factory.create_stemmer()
 
@@ -84,17 +100,25 @@ def update_database_otomatis():
         teks = re.sub(r'[^a-zA-Z0-9\s]', '', teks).lower()
         return stemmer.stem(teks)
 
-    data_bersih = []
-    for item in data_mentah:
+    data_bersih_baru = []
+    for item in data_baru:
         raw = item['content']['rendered']
-        data_bersih.append({
+        data_bersih_baru.append({
             'judul': item['title']['rendered'],
             'link': item['link'],
             'isi_html': raw, 
             'teks_bersih': bersihkan(raw) 
         })
 
-    pd.DataFrame(data_bersih).to_csv('dataset_bersih.csv', index=False)
+    df_baru = pd.DataFrame(data_bersih_baru)
+
+    if not df_lama.empty:
+        df_final = pd.concat([df_baru, df_lama], ignore_index=True)
+        df_final = df_final.head(100) 
+        df_final.to_csv(file_path, index=False)
+    else:
+        df_baru.to_csv(file_path, index=False)
+
     return True
 
 def cek_kesehatan_data():
@@ -193,6 +217,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
+# --- 7. TAMPILAN UTAMA ---
 st.title("USI Si Asisten!")
 
 def get_image_base64(image_path):
@@ -212,7 +237,7 @@ if img_email and img_wa:
     info_html = f"""
     <div class="custom-info-box">
         Ingin mengunggah berita anda sendiri? Hubungi Email
-        <a href="mailto:dyahretnosupriyani@gmail.com" target="_blank" title="Kirim Email">
+        <a href="mailto:dyahretnosupriyani@gmail.com" title="Kirim Email">
             <img src="data:image/png;base64,{img_email}" height="22" class="inline-logo">
         </a> 
         atau WhatsApp
@@ -243,6 +268,3 @@ if prompt := st.chat_input("Tanya berita..."):
     
     st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
     st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
-
-
-
