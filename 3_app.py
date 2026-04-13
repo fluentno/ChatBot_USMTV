@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import re
+import os
 import time
 import base64
 import google.generativeai as genai
@@ -63,55 +64,72 @@ st.markdown("""
 ICON_USI = "usi 2.png" 
 ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 
-# --- 3. PIPELINE DATA OTOMATIS (Tanpa CSV, Super Cepat) ---
-@st.cache_resource(ttl=3600, show_spinner="USI sedang sinkronisasi berita terbaru USMTV. Mohon tunggu sebentar...")
+# --- 3. PIPELINE DATA HYBRID (Live + Backup Darurat) ---
+@st.cache_resource(ttl=3600, show_spinner="USI sedang mempersiapkan berita. Mohon tunggu...")
 def siapkan_otak_usi():
-    timestamp_sekarang = int(time.time())
-    url = f"https://usmtv.id/wp-json/wp/v2/posts?per_page=50&_fields=title,link,content&_nocache={timestamp_sekarang}"
+    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=50&_fields=title,link,content"
     
     headers_browser = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     
-    try:
-        response = requests.get(url, headers=headers_browser, timeout=30)
-        if response.status_code != 200: 
-            return None, None, None, None
-        data_mentah = response.json()
-    except Exception:
-        return None, None, None, None
-
-    factory = StemmerFactory()
-    stemmer = factory.create_stemmer()
-
-    def bersihkan(teks):
-        teks = re.sub(r'<[^>]+>', ' ', str(teks))
-        teks = re.sub(r'[^a-zA-Z0-9\s]', '', teks).lower()
-        return stemmer.stem(teks)
-
-    data_bersih = []
-    for item in data_mentah:
-        raw = item['content']['rendered']
-        data_bersih.append({
-            'judul': item['title']['rendered'],
-            'link': item['link'],
-            'isi_html': raw, 
-            'teks_bersih': bersihkan(raw) 
-        })
-
-    df = pd.DataFrame(data_bersih)
-    df['teks_bersih'] = df['teks_bersih'].fillna('') 
-
-    vectorizer = TfidfVectorizer(ngram_range=(1, 2)) 
-    tfidf_matrix = vectorizer.fit_transform(df['teks_bersih'])
+    df = None
+    file_backup = 'backup_darurat_usi.csv'
+    sukses_live = False
     
-    return df, vectorizer, tfidf_matrix, stemmer
+    # 1. Coba narik data langsung ke USMTV (Waktu tunggu diperpanjang 45 detik)
+    try:
+        response = requests.get(url, headers=headers_browser, timeout=45)
+        if response.status_code == 200:
+            data_mentah = response.json()
+            if len(data_mentah) > 0:
+                factory = StemmerFactory()
+                stemmer = factory.create_stemmer()
+                
+                def bersihkan(teks):
+                    teks = re.sub(r'<[^>]+>', ' ', str(teks))
+                    teks = re.sub(r'[^a-zA-Z0-9\s]', '', teks).lower()
+                    return stemmer.stem(teks)
+                
+                data_bersih = []
+                for item in data_mentah:
+                    raw = item['content']['rendered']
+                    data_bersih.append({
+                        'judul': item['title']['rendered'],
+                        'link': item['link'],
+                        'isi_html': raw, 
+                        'teks_bersih': bersihkan(raw) 
+                    })
+                
+                df = pd.DataFrame(data_bersih)
+                # Berhasil! Simpan diam-diam sebagai bumper darurat
+                df.to_csv(file_backup, index=False)
+                sukses_live = True
+    except Exception:
+        pass # Diam saja kalau error
+
+    # 2. Kalau GAGAL ditarik (diblokir/lemot), ambil dari Bumper Darurat!
+    if not sukses_live:
+        if os.path.exists(file_backup):
+            df = pd.read_csv(file_backup)
+            df['teks_bersih'] = df['teks_bersih'].fillna('')
+        else:
+            return None, None, None, None # Benar-benar mati kalau backup juga gak ada
+
+    # 3. Rakit Otak AI-nya
+    if df is not None and not df.empty:
+        df['teks_bersih'] = df['teks_bersih'].fillna('')
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2)) 
+        tfidf_matrix = vectorizer.fit_transform(df['teks_bersih'])
+        factory = StemmerFactory()
+        stemmer = factory.create_stemmer()
+        return df, vectorizer, tfidf_matrix, stemmer
+    
+    return None, None, None, None
 
 # Jalankan pipeline
 df, vectorizer, tfidf_matrix, stemmer = siapkan_otak_usi()
 
-# 👇 ANTI-NYANGKUT: Kalau server USMTV gagal diakses, paksa bot melupakan error-nya!
 if df is None or df.empty:
     siapkan_otak_usi.clear()
 
@@ -119,9 +137,8 @@ if df is None or df.empty:
 def tanya_usi(pertanyaan_user):
     import random 
 
-    # Cek lagi siapa tahu masih kosong setelah di-clear
     if df is None or df.empty: 
-        return "Maaf, koneksi ke database USMTV sedang gangguan. Klik tombol 'Refresh Sistem' di menu sebelah kiri."
+        return "Maaf, koneksi server redaksi sedang padat. Silakan coba klik tombol '🔄 Refresh Sistem'."
 
     clean_query = stemmer.stem(pertanyaan_user.lower())
     query_vec = vectorizer.transform([clean_query])
@@ -169,7 +186,6 @@ with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True) 
     st.write("**USI menu options!**")
     
-    # Tombol Darurat dikembalikan biar aman
     if st.button("🔄 Refresh Sistem"):
         siapkan_otak_usi.clear()
         st.session_state.messages = []
