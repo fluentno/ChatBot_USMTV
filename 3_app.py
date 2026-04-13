@@ -175,7 +175,14 @@ def tanya_usi(pertanyaan_user):
 
     if similarity_scores.max() < 0.05:
         jumlah_berita = min(3, len(df))
-        top_indices = random.sample(range(len(df)), jumlah_berita)
+        # 👇 LOGIKA BARU: Cek apakah user sengaja minta berita "terbaru" 👇
+        pertanyaan_kecil = pertanyaan_user.lower()
+        if "baru" in pertanyaan_kecil or "hari ini" in pertanyaan_kecil or "today" in pertanyaan_kecil:
+            # Ambil index 0, 1, 2 (Berita yang paling baru di-upload ke WordPress)
+            top_indices = list(range(jumlah_berita))
+        else:
+            # Kalau nanyanya cuma "bagi berita dong", baru diacak (Random)
+            top_indices = random.sample(range(len(df)), jumlah_berita)
     else:
         top_indices = similarity_scores.argsort()[0][-3:][::-1]
 
