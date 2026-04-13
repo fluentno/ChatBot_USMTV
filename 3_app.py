@@ -136,15 +136,16 @@ def cek_kesehatan_data():
     else:
         try:
             umur_file = time.time() - os.path.getmtime(file_path)
-            # 👇 UBAH JADI 86400 DETIK (24 JAM). Auto-update hanya sehari sekali!
-            if umur_file > 86400: 
+            if umur_file > 86400: # Auto update harian
                 perlu_update = True
         except:
             perlu_update = True 
     
     if perlu_update:
-        update_database_otomatis()
-        st.cache_resource.clear()
+        # Aku tambahin tulisan loading biar kamu tau dia lagi kerja
+        with st.spinner("Mengunduh berita terbaru dari WordPress USMTV. Mohon tunggu..."):
+            update_database_otomatis()
+            st.cache_resource.clear()
 
 cek_kesehatan_data()
 
@@ -219,8 +220,6 @@ with st.sidebar:
     
     st.write("**USI menu options!**")
     
-    # Tombol Update sudah dihapus sepenuhnya dari sini
-
     if st.button("Mau Hapus Chat Aja"):
         st.session_state.messages = []
         st.rerun()
@@ -268,11 +267,19 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Tanya berita..."):
-    st.chat_message("user", avatar=ICON_USER).write(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    with st.spinner('Mencari...'):
-        jawaban_usi = tanya_usi(prompt)
-    
-    st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
-    st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
+    # 👇 INI DIA CHEAT CODE RAHASIANYA 👇
+    if prompt.strip() == "/reset":
+        if os.path.exists('dataset_bersih.csv'):
+            os.remove('dataset_bersih.csv')
+        st.cache_resource.clear()
+        st.rerun() # Memaksa bot ngulang dari awal dan nge-download berita baru
+    else:
+        # LOGIKA NORMAL KALAU BUKAN CHEAT CODE
+        st.chat_message("user", avatar=ICON_USER).write(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        with st.spinner('Mencari...'):
+            jawaban_usi = tanya_usi(prompt)
+        
+        st.chat_message("assistant", avatar=ICON_USI).write(jawaban_usi)
+        st.session_state.messages.append({"role": "assistant", "content": jawaban_usi})
