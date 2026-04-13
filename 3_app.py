@@ -76,7 +76,6 @@ def update_database_otomatis():
     }
     
     try:
-        # 👇 Timeout dinaikkan jadi 30 detik biar gak gampang putus
         response = requests.get(url, headers=headers_browser, timeout=30)
         if response.status_code != 200: return False
         data_mentah = response.json()
@@ -137,7 +136,8 @@ def cek_kesehatan_data():
     else:
         try:
             umur_file = time.time() - os.path.getmtime(file_path)
-            if umur_file > 300: 
+            # 👇 UBAH JADI 86400 DETIK (24 JAM). Auto-update hanya sehari sekali!
+            if umur_file > 86400: 
                 perlu_update = True
         except:
             perlu_update = True 
@@ -219,18 +219,7 @@ with st.sidebar:
     
     st.write("**USI menu options!**")
     
-    if st.button("Mau Update Berita"):
-        with st.spinner("Sedang mereset dan memproses 100 berita. (JANGAN DI-REFRESH, tunggu sampai hijau)..."):
-            if os.path.exists('dataset_bersih.csv'):
-                os.remove('dataset_bersih.csv')
-            
-            if update_database_otomatis():
-                st.success("Database berhasil di-reset & di-update!")
-                st.cache_resource.clear() 
-                st.rerun()
-            else:
-                # 👇 Pesan error kalau gagal
-                st.error("Koneksi ke server USMTV gagal/terputus. Silakan klik tombol ini lagi.")
+    # Tombol Update sudah dihapus sepenuhnya dari sini
 
     if st.button("Mau Hapus Chat Aja"):
         st.session_state.messages = []
