@@ -76,7 +76,8 @@ def update_database_otomatis():
     }
     
     try:
-        response = requests.get(url, headers=headers_browser, timeout=15)
+        # 👇 Timeout dinaikkan jadi 30 detik biar gak gampang putus
+        response = requests.get(url, headers=headers_browser, timeout=30)
         if response.status_code != 200: return False
         data_mentah = response.json()
     except Exception:
@@ -175,13 +176,10 @@ def tanya_usi(pertanyaan_user):
 
     if similarity_scores.max() < 0.05:
         jumlah_berita = min(3, len(df))
-        # 👇 LOGIKA BARU: Cek apakah user sengaja minta berita "terbaru" 👇
         pertanyaan_kecil = pertanyaan_user.lower()
         if "baru" in pertanyaan_kecil or "hari ini" in pertanyaan_kecil or "today" in pertanyaan_kecil:
-            # Ambil index 0, 1, 2 (Berita yang paling baru di-upload ke WordPress)
             top_indices = list(range(jumlah_berita))
         else:
-            # Kalau nanyanya cuma "bagi berita dong", baru diacak (Random)
             top_indices = random.sample(range(len(df)), jumlah_berita)
     else:
         top_indices = similarity_scores.argsort()[0][-3:][::-1]
@@ -222,15 +220,17 @@ with st.sidebar:
     st.write("**USI menu options!**")
     
     if st.button("Mau Update Berita"):
-        with st.spinner("Mereset dan mengunduh ulang data..."):
-            # 👇 TAMBAHAN BARU: Hapus memori yang berantakan 👇
+        with st.spinner("Sedang mereset dan memproses 100 berita. (JANGAN DI-REFRESH, tunggu sampai hijau)..."):
             if os.path.exists('dataset_bersih.csv'):
                 os.remove('dataset_bersih.csv')
-                
+            
             if update_database_otomatis():
-                st.success("Database berhasil di-reset!")
+                st.success("Database berhasil di-reset & di-update!")
                 st.cache_resource.clear() 
                 st.rerun()
+            else:
+                # 👇 Pesan error kalau gagal
+                st.error("Koneksi ke server USMTV gagal/terputus. Silakan klik tombol ini lagi.")
 
     if st.button("Mau Hapus Chat Aja"):
         st.session_state.messages = []
