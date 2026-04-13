@@ -222,9 +222,13 @@ with st.sidebar:
     st.write("**USI menu options!**")
     
     if st.button("Mau Update Berita"):
-        with st.spinner("Updating..."):
+        with st.spinner("Mereset dan mengunduh ulang data..."):
+            # 👇 TAMBAHAN BARU: Hapus memori yang berantakan 👇
+            if os.path.exists('dataset_bersih.csv'):
+                os.remove('dataset_bersih.csv')
+                
             if update_database_otomatis():
-                st.success("Updated!")
+                st.success("Database berhasil di-reset!")
                 st.cache_resource.clear() 
                 st.rerun()
 
