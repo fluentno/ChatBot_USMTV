@@ -11,10 +11,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from PIL import Image
 
+# --- 1. KONFIGURASI API KEY ---
 API_KEY = st.secrets["GEMINI_API_KEY"] 
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-flash-latest')
 
+# --- 2. SETUP HALAMAN & LOGO ---
 try:
     logo_icon = Image.open("usi 2.png") 
 except FileNotFoundError:
@@ -62,11 +64,15 @@ st.markdown("""
 ICON_USI = "usi 2.png" 
 ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 
+# --- 3. FUNGSI UPDATE DATA ---
 def update_database_otomatis():
-    url = "https://usmtv.id/wp-json/wp/v2/posts?per_page=100&_fields=title,link,content,date"
+    timestamp_sekarang = int(time.time())
+    url = f"https://usmtv.id/wp-json/wp/v2/posts?per_page=100&_fields=title,link,content,date&_nocache={timestamp_sekarang}"
     
     headers_browser = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
     }
     
     try:
@@ -91,7 +97,7 @@ def update_database_otomatis():
 
     if not data_baru:
         return True 
-   
+    
     factory = StemmerFactory()
     stemmer = factory.create_stemmer()
 
@@ -121,6 +127,7 @@ def update_database_otomatis():
 
     return True
 
+# --- 4. CEK KESEHATAN DATA & LOAD DATA ---
 def cek_kesehatan_data():
     file_path = 'dataset_bersih.csv'
     perlu_update = False
@@ -129,15 +136,14 @@ def cek_kesehatan_data():
     else:
         try:
             umur_file = time.time() - os.path.getmtime(file_path)
-            if umur_file > 21600: 
+            if umur_file > 300: 
                 perlu_update = True
         except:
             perlu_update = True 
     
     if perlu_update:
-        with st.spinner("Sedang sinkronisasi berita terbaru otomatis..."):
-            update_database_otomatis()
-            st.cache_resource.clear()
+        update_database_otomatis()
+        st.cache_resource.clear()
 
 cek_kesehatan_data()
 
@@ -157,6 +163,7 @@ def load_data():
 
 df, vectorizer, tfidf_matrix, stemmer = load_data()
 
+# --- 5. LOGIKA USI ---
 def tanya_usi(pertanyaan_user):
     import random 
 
@@ -199,6 +206,7 @@ def tanya_usi(pertanyaan_user):
     except:
         return "Maaf, koneksi gangguan."
 
+# --- 6. SIDEBAR PENGATURAN ---
 with st.sidebar:
     st.image(ICON_USI, width=80)
     
@@ -217,6 +225,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
+# --- 7. TAMPILAN UTAMA ---
 st.title("USI Si Asisten!")
 
 def get_image_base64(image_path):
