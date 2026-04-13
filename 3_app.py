@@ -64,20 +64,20 @@ ICON_USI = "usi 2.png"
 ICON_USER = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"
 
 # --- 3. PIPELINE DATA OTOMATIS (Tanpa CSV, Super Cepat) ---
-# TTL = 3600 detik (1 Jam). Data otomatis refresh di RAM server setiap 1 jam!
-@st.cache_resource(ttl=3600, show_spinner="USI sedang sinkronisasi berita terbaru USMTV hari ini...")
+@st.cache_resource(ttl=3600, show_spinner="USI sedang sinkronisasi berita terbaru USMTV. Mohon tunggu sebentar...")
 def siapkan_otak_usi():
     timestamp_sekarang = int(time.time())
-    # Kita tarik 50 berita aja biar proses pre-processing Sastrawi lebih ngebut (gak lemot)
     url = f"https://usmtv.id/wp-json/wp/v2/posts?per_page=50&_fields=title,link,content&_nocache={timestamp_sekarang}"
     
     headers_browser = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
     }
     
     try:
         response = requests.get(url, headers=headers_browser, timeout=30)
-        if response.status_code != 200: return None, None, None, None
+        if response.status_code != 200: 
+            return None, None, None, None
         data_mentah = response.json()
     except Exception:
         return None, None, None, None
@@ -111,12 +111,17 @@ def siapkan_otak_usi():
 # Jalankan pipeline
 df, vectorizer, tfidf_matrix, stemmer = siapkan_otak_usi()
 
+# 👇 ANTI-NYANGKUT: Kalau server USMTV gagal diakses, paksa bot melupakan error-nya!
+if df is None or df.empty:
+    siapkan_otak_usi.clear()
+
 # --- 4. LOGIKA USI ---
 def tanya_usi(pertanyaan_user):
     import random 
 
+    # Cek lagi siapa tahu masih kosong setelah di-clear
     if df is None or df.empty: 
-        return "Maaf, koneksi ke database USMTV sedang gangguan. Coba beberapa saat lagi."
+        return "Maaf, koneksi ke database USMTV sedang gangguan. Klik tombol 'Refresh Sistem' di menu sebelah kiri."
 
     clean_query = stemmer.stem(pertanyaan_user.lower())
     query_vec = vectorizer.transform([clean_query])
@@ -125,7 +130,6 @@ def tanya_usi(pertanyaan_user):
     if similarity_scores.max() < 0.05:
         jumlah_berita = min(3, len(df))
         pertanyaan_kecil = pertanyaan_user.lower()
-        # Kalau user minta berita baru, kasih 3 indeks teratas (terbaru dari WP)
         if "baru" in pertanyaan_kecil or "hari ini" in pertanyaan_kecil or "today" in pertanyaan_kecil or "update" in pertanyaan_kecil:
             top_indices = list(range(jumlah_berita))
         else:
@@ -143,7 +147,7 @@ def tanya_usi(pertanyaan_user):
     prompt = f"""
     Kamu adalah USI, asisten pintar dari portal berita USMTV.
     
-    KONTEKS BERITA SAAT INI (Update Hari Ini):
+    KONTEKS BERITA SAAT INI:
     {konteks_berita}
     
     ATURAN MUTLAK:
@@ -165,7 +169,13 @@ with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True) 
     st.write("**USI menu options!**")
     
-    if st.button("Mau Hapus Chat Aja"):
+    # Tombol Darurat dikembalikan biar aman
+    if st.button("🔄 Refresh Sistem"):
+        siapkan_otak_usi.clear()
+        st.session_state.messages = []
+        st.rerun()
+
+    if st.button("🗑️ Hapus Chat Aja"):
         st.session_state.messages = []
         st.rerun()
 
